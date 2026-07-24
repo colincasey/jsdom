@@ -13,14 +13,19 @@ const toRunFilename = "to-run.yaml";
 
 const toRunDocs = checkToRunFile(path.resolve(__dirname, toRunFilename), possibleTestFilePaths);
 
-let wptServerURL, serverProcess;
+let wptServerURL, wptServerHTTPSURL, serverProcess;
 const runSingleWPT = require("./run-single-wpt.js")(
-  () => wptServerURL,
+  // WPT variants tagged with `wpt_flags=https` expect the page itself to be
+  // served over https (a "secure context"); everything else runs over http.
+  testPath => {
+    return /[?&]wpt_flags=https(?:&|$)/.test(testPath) ? wptServerHTTPSURL : wptServerURL;
+  },
   toRunFilename
 );
 before({ timeout: 30_000 }, async () => {
   const { urls, subprocess } = await wptServer.start({ toUpstream: false });
   wptServerURL = urls[0];
+  wptServerHTTPSURL = urls[1];
   serverProcess = subprocess;
 });
 
